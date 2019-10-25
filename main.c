@@ -35,7 +35,6 @@ static void *printer(void *arg)
         uart_t dev = (uart_t)msg.content.value;
 
 	ringbuffer_get(&(ctx[dev].rx_buf), buf, ctx[dev].rx_buf.avail);
-	//printf("buf: %s\n", buf);
 	switch (minmea_sentence_id(buf, false)) {
 		case MINMEA_SENTENCE_RMC: {
 		    struct minmea_sentence_rmc frame;
@@ -95,12 +94,16 @@ static void rx_cb(void *arg, uint8_t data)
 {
     uart_t dev = (uart_t)arg;
 
-    ringbuffer_add_one(&(ctx[dev].rx_buf), data);
-    if (data == '\n') {
+    if (data == '\n')
+	    return;
+    if (data == '\r') {
+        ringbuffer_add_one(&(ctx[dev].rx_buf), '\0');
         msg_t msg;
         msg.content.value = (uint32_t)dev;
         msg_send(&msg, printer_pid);
+	return;
     }
+    ringbuffer_add_one(&(ctx[dev].rx_buf), data);
 }
 
 int main(void)
